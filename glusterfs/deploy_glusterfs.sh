@@ -1,20 +1,34 @@
 #!/bin/bash
+# Install and configure GlusterFS 
+# on Ubuntu or Debian.
+#
 # Author dysj4099@gmail.com
+# April 20, 2014
 
-###############Initialization################
-PKG_PATH=/opt/files/glusterfs-3.4.0.tar.gz
-ROOT_PASS=test
-# Gluster peers
-NODES=(192.168.64.87 192.168.64.88)
-# Gluster volumes
-vol_1=(nova_vol /opt/nova_vol 192.168.64.87,192.168.64.88)
-VOLUMES=(vol_1)
-#############################################
+# Read config
+. ./deploy_glusterfs.cfg
 
 # Get MY_IP
 if [ "${MY_IP}" == "" ];then
-        MY_IP=$(python -c "import socket;socket=socket.socket();socket.connect(('8.8.8.8',53));print socket.getsockname()[0];")
+    MY_IP=$(python -c "import socket;socket=socket.socket();socket.connect(('8.8.8.8',53));print socket.getsockname()[0];")
 fi
+
+# Get ROOT_PASS from keyboard
+if [ $# -ne 2 ];then
+    echo "Usage:"
+    echo "      `basename $0` -p password"
+    exit 0
+fi
+while getopts 'p:l:' OPT; do
+case $OPT in
+    p)
+        ROOT_PASS="$OPTARG";;
+    ?)
+	echo "Usage:"
+	echo "      `basename $0` -p password"
+	exit 0
+esac
+done
 
 # Step 1. Install sshpass
 apt-get install sshpass -y
@@ -71,14 +85,19 @@ if [ ${conn_peer_num} -eq ${#NODES[@]} ];then
         eval vol_info=(\${$vol[@]})
         eval vol_nodes=(${vol_info[2]//,/ })
         vol_path=""
+
         for node in ${vol_nodes[@]};do
             vol_path=$vol_path$node:${vol_info[1]}" "
         done
 
         # create volume
-        /usr/local/sbin/gluster volume create ${vol_info[0]} replica 2 ${vol_path}
+	if [ "${#vol_info[@]}" == "4" ]; then
+            /usr/local/sbin/gluster volume create ${vol_info[0]} replica ${vol_info[3]} ${vol_path}
+	elif [ "${#vol_info[@]}" == "3" ]; then
+            /usr/local/sbin/gluster volume create ${vol_info[0]} ${vol_path}
+        fi
         # start volume
-        /usr/local/sbin/gluster volume start ${vol_info[0]}
+        echo /usr/local/sbin/gluster volume start ${vol_info[0]}
     done 
 else
     echo "Attach peers error"
