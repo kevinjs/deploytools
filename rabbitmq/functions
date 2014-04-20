@@ -1,0 +1,10 @@
+#!/bin/bash
+
+function is_installed() {
+    if [[ -z "$@" ]]; then
+        return 1
+    fi
+
+    dpkg -l "$@" > /dev/null
+    return $?
+}
