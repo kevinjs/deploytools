@@ -4,7 +4,7 @@
 # April 15, 2014
 
 # Debug
-set -x
+#set -x
 
 # Read config
 . ./deploy_rabbitmq_cluster.cfg
@@ -12,7 +12,7 @@ set -x
 # Set /etc/hosts
 touch /tmp/tmp_hosts
 for i in ${!NODES[@]}; do
-    eval node_info=(\${${NODES[i]}[@]})
+    eval node_info=(\${${NODES[$i]}[@]})
     echo "${node_info[1]}	${node_info[0]}" >> /tmp/tmp_hosts
 done
 
@@ -30,7 +30,8 @@ fi
 while getopts 'p:l:' OPT; do
 case $OPT in
     p)
-	ROOT_PASS="$OPTARG";;
+	ROOT_PASS="$OPTARG"
+        ;;
     ?)
 	echo "Usage:"
 	echo "      `basename $0` -p password"
@@ -44,19 +45,26 @@ apt-get install sshpass -y
 # Step 2. install and configure
 cat > /tmp/tmp_install_rabbitmq.sh << _wrtend_
 #!/bin/bash
+
+echo "Installing on"
+hostname
+
 # Get install parameter
 while getopts 'h:r' OPT; do
-    case $OPT in
+    case \$OPT in
         h)
-	    HOSTNAME_ROOT="$OPTARG";;
+	    HOSTNAME_ROOT="\$OPTARG"
+            ;;
 	r)
-	    RAM_MODE=true;;												   
+	    RAM_MODE=true
+            ;;
     esac
 done
 # Remove old version
 apt-get -y --force-yes purge rabbitmq-server
+cat /tmp/tmp_hosts >> /etc/hosts
 # Install new version
-echo "deb http://www.rabbitmq.com/debian/ testing main" >> /etc/apt/source.list
+echo "deb http://www.rabbitmq.com/debian/ testing main" >> /etc/apt/sources.list
 sudo apt-key add /tmp/rabbitmq-signing-key-public.asc
 apt-get update
 apt-get -y --force-yes install rabbitmq-server
@@ -72,10 +80,10 @@ service rabbitmq-server start
 /usr/lib/rabbitmq/bin/rabbitmq-plugins enable rabbitmq_management
 /usr/sbin/rabbitmqctl stop_app
 /usr/sbin/rabbitmqctl reset
-if $RAM_MODE;then
-    /usr/sbin/rabbitmqctl join_cluster --ram rabbit@${HOSTNAME_ROOT}
+if \$RAM_MODE;then
+    /usr/sbin/rabbitmqctl join_cluster --ram rabbit@\${HOSTNAME_ROOT}
 else
-    /usr/sbin/rabbitmqctl join_cluster rabbit@${HOSTNAME_ROOT}
+    /usr/sbin/rabbitmqctl join_cluster rabbit@\${HOSTNAME_ROOT}
 fi
 /usr/sbin/rabbitmqctl start_app
 service rabbitmq-server restart
@@ -84,19 +92,17 @@ _wrtend_
 ROOT_HOST=""
 for i in ${!NODES[@]}; do
     #idx=`expr $i + 1`
-    eval node_info=(\${${NODES[i]}[@]})
-    #echo ${node_info[0]}
+    eval node_info=(\${${NODES[$i]}[@]})
+    echo 'install ++++++++ on '${node_info[0]}
     #echo ${node_info[1]}
     #echo ${node_info[2]}
-    if [ i -eq 0 ];then
-        ROOT_HOST=${node_info[1]}
+    if [ $i == 0 ];then
+        ROOT_HOST=${node_info[0]}
     fi
 
     sshpass -p ${ROOT_PASS} scp -o StrictHostKeyChecking=no /tmp/tmp_install_rabbitmq.sh root@${node_info[1]}:/tmp/
     sshpass -p ${ROOT_PASS} scp -o StrictHostKeyChecking=no /tmp/tmp_hosts root@${node_info[1]}:/tmp/
     sshpass -p ${ROOT_PASS} scp -o StrictHostKeyChecking=no ./rabbitmq-signing-key-public.asc root@${node_info[1]}:/tmp/
-    sshpass -p ${ROOT_PASS} ssh -o StrictHostKeyChecking=no root@${node_info[1]} cat /tmp/tmp_hosts >> /etc/hosts
-
     if [ "${node_info[2]}" == "ram" ];then
         sshpass -p ${ROOT_PASS} ssh -o StrictHostKeyChecking=no root@${node_info[1]} /bin/bash /tmp/tmp_install_rabbitmq.sh -h ${ROOT_HOST} -r
     else
@@ -105,10 +111,10 @@ for i in ${!NODES[@]}; do
 done
 
 for i in ${USERS[@]}; do
-    eval user_info=(\${${USERS[i]}[@]})
+    eval user_info=(\${${USERS[$i]}[@]})
     #echo ${user_info[0]}
     #echo ${user_info[1]}
     /usr/sbin/rabbitmqctl add_user ${user_info[0]} ${user_info[1]}
     /usr/sbin/rabbitmqctl set_user_tags ${user_info[0]} ${user_info[2]}
-    /usr/sbin/rabbitmqctl ser_permissions -p / ${user_info[0]} ".*" ".*" ".*"
+    /usr/sbin/rabbitmqctl set_permissions -p / ${user_info[0]} ".*" ".*" ".*"
 done

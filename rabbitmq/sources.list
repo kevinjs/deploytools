@@ -1,0 +1,16 @@
+deb http://www.rabbitmq.com/debian/ testing main
+deb http://yum.csdb.cn/ubuntu/ precise main restricted
+deb-src http://yum.csdb.cn/ubuntu/ precise main restricted
+deb http://yum.csdb.cn/ubuntu/ precise-updates main restricted
+deb-src http://yum.csdb.cn/ubuntu/ precise-updates main restricted
+deb http://yum.csdb.cn/ubuntu/ precise universe
+deb-src http://yum.csdb.cn/ubuntu/ precise universe
+deb http://yum.csdb.cn/ubuntu/ precise-updates universe
+deb-src http://yum.csdb.cn/ubuntu/ precise-updates universe
+deb http://yum.csdb.cn/ubuntu/ precise multiverse
+deb-src http://yum.csdb.cn/ubuntu/ precise multiverse
+deb http://yum.csdb.cn/ubuntu/ precise-updates multiverse
+deb-src http://yum.csdb.cn/ubuntu/ precise-updates multiverse
+deb http://yum.csdb.cn/ubuntu/ precise-backports main restricted universe multiverse
+deb-src http://yum.csdb.cn/ubuntu/ precise-backports main restricted universe multiverse
+
