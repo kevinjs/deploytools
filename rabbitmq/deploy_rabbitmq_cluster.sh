@@ -29,10 +29,25 @@ esac
 done
 
 # Step 1. install sshpass
-if ! os_is_package_installed sshpass; then
-    os_echo 'Install SSHPASS'
-    os_install_package sshpass > /dev/null 2>&1
-fi
+apt-get install sshpass -y
 
 # Step 2.
+cat > /tmp/tmp_install_rabbitmq.sh << _wrtend_
+#!/bin/bash
+# Remove old version
+apt-get -y purge rabbitmq-server
+# Install new version
+echo "deb http://www.rabbitmq.com/debian/ testing main" >> /etc/apt/source.list
+sudo apt-key add rabbitmq-signing-key-public.asc
+apt-get update
+apt-get -y install rabbitmq-server
+# Stop service
+service rabbitmq-server stop
+# Set erlang cookie
+echo 'CNICCSDBRABBITMQECCP' > /var/lib/rabbitmq/.erlang.cookie
+chown rabbitmq:rabbitmq /var/lib/rabbitmq/.erlang.cookie
+chmod 400 /var/lib/rabbitmq/.erlang.cookie
+# Start service
+service rabbitmq-server start
 
+_wrtend_
