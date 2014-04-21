@@ -31,9 +31,17 @@ done
 # Step 1. install sshpass
 apt-get install sshpass -y
 
-# Step 2.
+# Step 2. install and configure
 cat > /tmp/tmp_install_rabbitmq.sh << _wrtend_
 #!/bin/bash
+# Get install parameter
+while getopts 'h:r' OPT; do
+    case $OPT in
+        h)
+	    HOSTNAME_ROOT="$OPTARG";;
+	r)
+	    RAM_MODE=true;;												   esac
+done
 # Remove old version
 apt-get -y purge rabbitmq-server
 # Install new version
@@ -49,5 +57,19 @@ chown rabbitmq:rabbitmq /var/lib/rabbitmq/.erlang.cookie
 chmod 400 /var/lib/rabbitmq/.erlang.cookie
 # Start service
 service rabbitmq-server start
-
+# Set up rabbitmq cluster
+/usr/lib/rabbitmq/bin/rabbitmq-plugins enable rabbitmq_management
+/usr/sbin/rabbitmqctl stop_app
+/usr/sbin/rabbitmqctl reset
+if $RAM_MODE;then
+    /usr/sbin/rabbitmqctl join_cluster --ram rabbit@${HOSTNAME_ROOT}
+else
+    /usr/sbin/rabbitmqctl join_cluster rabbit@${HOSTNAME_ROOT}
+fi
+/usr/sbin/rabbitmqctl start_app
 _wrtend_
+
+for i in ${!NODES[@]}; do
+    #idx=`expr $i + 1`
+
+done
