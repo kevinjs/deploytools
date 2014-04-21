@@ -1,4 +1,3 @@
-deb http://www.rabbitmq.com/debian/ testing main
 deb http://yum.csdb.cn/ubuntu/ precise main restricted
 deb-src http://yum.csdb.cn/ubuntu/ precise main restricted
 deb http://yum.csdb.cn/ubuntu/ precise-updates main restricted
