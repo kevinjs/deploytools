@@ -13,7 +13,7 @@ Configure of deploy\_glusterfs.sh
 	vol_2=(vol_2 /opt/vol_2 192.168.1.1,192.168.1.2,192.168.1.3)
 	VOLUMES=(vol_1 vol_2)
 
-`PKG\_PATH`
+`PKG_PATH`
 
 The path of glusterfs source package. You have to change relevant name in deploy\_glusterfs.sh before install.
 
@@ -34,6 +34,6 @@ Execute script. You have to change the decompress path if you use another versio
 
 `Usage:`
 
-	chmod +x deploy\_glusterfs.sh
+	chmod +x deploy_glusterfs.sh
 
-	./deploy\_gluster.sh -p ROOT\_PASS
+	./deploy_gluster.sh -p ROOT_PASS
