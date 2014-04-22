@@ -3,6 +3,16 @@
 ## deploy\_glusterfs.cfg
 Configure of deploy\_glusterfs.sh
 
+	# Path of package
+	PKG_PATH=/opt/files/glusterfs-3.4.0.tar.gz
+	# Gluster peer list
+	NODES=(192.168.1.1 192.168.1.2 192.168.1.3)
+	# Gluster volume list
+	# vol_name data_path ips_list replica_num(optional)
+	vol_1=(vol_1 /opt/vol_1 192.168.1.1,192.168.1.2 2)
+	vol_2=(vol_2 /opt/vol_2 192.168.1.1,192.168.1.2,192.168.1.3)
+	VOLUMES=(vol_1 vol_2)
+
 `PKG\_PATH`
 
 The path of glusterfs source package. You have to change relevant name in deploy\_glusterfs.sh before install.
