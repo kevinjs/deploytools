@@ -143,12 +143,13 @@ if $SET_HA;then
     # Step 3. create temp install script
 cat > /tmp/tmp_deploy_haproxy.sh << _wrtend_
 #!/bin/bash
-
+#set -x
 service haproxy stop
-ps -ef | grep haproxy | grep -v grep | awk '{print \$2}' | xargs kill
+ps -ef | grep haproxy | grep -v grep | grep -v tmp_deploy_haproxy.sh | awk '{print \$2}' | xargs kill
 apt-get -y --force-yes install haproxy
 cp /tmp/tmp_haproxy.cfg /etc/haproxy/haproxy.cfg
 /usr/sbin/haproxy -f /etc/haproxy/haproxy.cfg -D
+set +x
 _wrtend_
 
     # Step 4. install and configure
