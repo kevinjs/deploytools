@@ -45,10 +45,6 @@ apt-get install sshpass -y
 # Step 2. install and configure
 cat > /tmp/tmp_install_rabbitmq.sh << _wrtend_
 #!/bin/bash
-
-echo "Installing on"
-hostname
-
 # Get install parameter
 while getopts 'h:r' OPT; do
     case \$OPT in
@@ -93,9 +89,7 @@ ROOT_HOST=""
 for i in ${!NODES[@]}; do
     #idx=`expr $i + 1`
     eval node_info=(\${${NODES[$i]}[@]})
-    echo 'install ++++++++ on '${node_info[0]}
-    #echo ${node_info[1]}
-    #echo ${node_info[2]}
+    echo -e "\033[33m Install RabbitMQ on ${node_info[0]} \033[0m"
     if [ $i == 0 ];then
         ROOT_HOST=${node_info[0]}
     fi
@@ -108,13 +102,59 @@ for i in ${!NODES[@]}; do
     else
         sshpass -p ${ROOT_PASS} ssh -o StrictHostKeyChecking=no root@${node_info[1]} /bin/bash /tmp/tmp_install_rabbitmq.sh -h ${ROOT_HOST}
     fi
+    echo -e "\033[33m Install RabbitMQ done ${node_info[0]} \033[0m"
 done
 
+echo -e "\033[33m Configure RabbitMQ Cluster \033[0m"
 for i in ${USERS[@]}; do
     eval user_info=(\${${USERS[$i]}[@]})
-    #echo ${user_info[0]}
-    #echo ${user_info[1]}
     /usr/sbin/rabbitmqctl add_user ${user_info[0]} ${user_info[1]}
     /usr/sbin/rabbitmqctl set_user_tags ${user_info[0]} ${user_info[2]}
     /usr/sbin/rabbitmqctl set_permissions -p / ${user_info[0]} ".*" ".*" ".*"
 done
+
+# Set up HA Policy
+# for RabbitMQ 3.x
+/usr/sbin/rabbitmqctl set_policy ha-all "^" '{"ha-mode":"all"}'
+echo -e "\033[33m Configure done \033[0m"
+
+# Install and configure HAProxy
+if [ -z "${HAPROXY_ROOT[0]}" ];then
+    SET_HA=false
+else
+    SET_HA=true
+fi
+
+if $SET_HA;then
+    echo -e "\033[33m Deploy HAProxy on ${HAPROXY_ROOT[0]} \033[0m"
+    # Step 1. copy file
+    cp ./haproxy.cfg /tmp/tmp_haproxy.cfg
+
+    echo "listen rabbitmq 0.0.0.0:"${HAPROXY_ROOT[1]} >> /tmp/tmp_haproxy.cfg
+    echo "	mode	tcp" >> /tmp/tmp_haproxy.cfg
+    echo "	balance	roundrobin" >> /tmp/tmp_haproxy.cfg
+
+    # Step 2. append config
+    for i in ${!NODES[@]}; do
+        eval node_info=(\${${NODES[$i]}[@]})
+        echo "	server	${node_info[0]}	${node_info[1]}:5672	check   inter   2000 rise 2 fall 3" >> /tmp/tmp_haproxy.cfg
+    done
+
+    # Step 3. create temp install script
+cat > /tmp/tmp_deploy_haproxy.sh << _wrtend_
+#!/bin/bash
+
+service haproxy stop
+ps -ef | grep haproxy | grep -v grep | awk '{print \$2}' | xargs kill
+apt-get -y --force-yes install haproxy
+cp /tmp/tmp_haproxy.cfg /etc/haproxy/haproxy.cfg
+/usr/sbin/haproxy -f /etc/haproxy/haproxy.cfg -D
+_wrtend_
+
+    # Step 4. install and configure
+    sshpass -p ${ROOT_PASS} scp -o StrictHostKeyChecking=no /tmp/tmp_haproxy.cfg /tmp/tmp_deploy_haproxy.sh root@${HAPROXY_ROOT[0]}:/tmp/
+    sshpass -p ${ROOT_PASS} ssh -o StrictHostKeyChecking=no root@${HAPROXY_ROOT[0]} /bin/bash /tmp/tmp_deploy_haproxy.sh
+    echo "Deploy HAProxy done."
+    echo -e "\033[33m Deploy HAProxy done \033[0m"
+fi
+
