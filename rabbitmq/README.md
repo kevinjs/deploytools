@@ -37,7 +37,7 @@ User list.
 
 If you want create load balance for RabbitMQ cluster, you have to specify the haproxy root node.
 
-## haproxy.cfg
+## deploy_rabbitmq_cluster.sh
 Execute script. 
 
 `Usage:`
