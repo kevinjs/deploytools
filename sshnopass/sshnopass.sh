@@ -34,3 +34,6 @@ for i in ${!IP_PWS[@]}; do
         sshpass -p ${IP_PWS[$((i+1))]} ssh -o StrictHostKeyChecking=no root@${IP_PWS[$i]} service ssh restart
     fi
 done
+
+#remove the temp file
+rm $authFile
