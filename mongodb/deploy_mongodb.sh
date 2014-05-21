@@ -105,13 +105,20 @@ for node in ${NODES[@]}; do
     sshpass -p ${ROOT_PASS} scp -o StrictHostKeyChecking=no -r ${PKG_PATH} /tmp/tmp_${node}_mkdir.sh root@${node_info[0]}:/tmp
     sshpass -p ${ROOT_PASS} ssh -o StrictHostKeyChecking=no root@${node_info[0]} tar -xzvf /tmp/${ori_name} -C /tmp/
     sshpass -p ${ROOT_PASS} ssh -o StrictHostKeyChecking=no root@${node_info[0]} mv /tmp/${pkg_name} ${DATA_PATH}/mongodb/
-    echo -e "\033[33m--Initiatation on ${node_info[0]}-- \033[0m"
+    echo -e "\033[33m--Init on ${node_info[0]}-- \033[0m"
     sshpass -p ${ROOT_PASS} ssh -o StrictHostKeyChecking=no root@${node_info[0]} /bin/bash /tmp/tmp_${node}_mkdir.sh
     sshpass -p ${ROOT_PASS} ssh -o StrictHostKeyChecking=no root@${node_info[0]} /bin/bash ${DATA_PATH}/start_${node}.sh
 done
 
 # Step 5: Config shards and reps
 echo -e "\033[33m--Config shards-- \033[0m"
+
+if [ -f "/tmp/tmp_config_mongo.sh" ];then
+    rm /tmp/tmp_config_mongo.sh
+fi
+touch /tmp/tmp_config_mongo.sh
+echo "#!/bin/bash" >> /tmp/tmp_config_mongo.sh
+
 for shn in ${SHARDS[@]};do
     eval shns=(\${$shn[@]})
     shn_pn=$shn"_p"
@@ -129,10 +136,12 @@ for shn in ${SHARDS[@]};do
         tmp_str=${tmp_str}"}"
     done
     shard_conf_str=${shard_conf_str}${tmp_str}"]};rs.initiate(config);\""
-    $shard_conf_str
-    sleep 1
+    echo $shard_conf_str >> /tmp/tmp_config_mongo.sh
+    echo "sleep 1" >> /tmp/tmp_config_mongo.sh
     #$shard_conf_str
 done
+
+echo "sleep 20" >> /tmp/tmp_config_mongo.sh
 
 echo -e "\033[33m--Config reps-- \033[0m"
 for shn in ${SHARDS[@]};do
@@ -149,10 +158,13 @@ for shn in ${SHARDS[@]};do
         fi
     done
     rep_conf_str=${rep_conf_str}"'});\""
-    $rep_conf_str
-    sleep 1
+    echo $rep_conf_str >> /tmp/tmp_config_mongo.sh
+    echo "sleep 1" >> /tmp/tmp_config_mongo.sh
     #$rep_conf_str
 done
+
+sleep 5
+/bin/bash /tmp/tmp_config_mongo.sh
 
 echo -e "\033[33m--Clean files-- \033[0m"
 rm /tmp/tmp_${node}_mkdir.sh
