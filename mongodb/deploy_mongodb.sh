@@ -1,5 +1,6 @@
 #!/bin/bash
 # Author: dysj4099@gmail.com
+# May 21. 2014
 
 # Read config
 . ./deploy_mongodb.cfg
@@ -27,9 +28,13 @@ echo -e "\033[33m--Install sshpass-- \033[0m"
 yum -y install sshpass.x86_64
 
 # Step 2: Get ports of each server
+SHARDS=()
 for i in ${!PORTS[@]}; do
     if [ $[i%2] -eq 0 ]; then
         eval ${PORTS[$((i))]}_p=${PORTS[$((i+1))]}
+        if [ "${PORTS[$((i))]}" != "config" ] && [ "${PORTS[$((i))]}" != "mongos" ];then
+            SHARDS=("${SHARDS[@]}" "${PORTS[$((i))]}")
+        fi
     fi
 done
 
@@ -44,6 +49,8 @@ elif [[ "${PKG_PATH}" =~ .tar.gz$ ]];then
     pkg_name=${pkg_name%%.*}
 fi
 
+# Step 4: Mkdir and start services
+echo -e "\033[33m--Copy files-- \033[0m"
 node_port=""
 c=0
 for node in ${NODES[@]}; do
@@ -75,10 +82,10 @@ for node in ${NODES[@]}; do
     fi
 done
 
+echo -e "\033[33m--Start services-- \033[0m"
 for node in ${NODES[@]}; do
     eval node_info=(\${$node[@]})
     for i in ${!node_info[@]}; do
-        # skip line 1 (IP Address)
         if (( $i > 0 ));then
             svr=${node_info[$i]%_arb}
             svr_pn=$svr"_p"
@@ -90,9 +97,6 @@ for node in ${NODES[@]}; do
             else
                 echo "numactl --interleave=all ${DATA_PATH}/mongodb/bin/mongod --shardsvr --replSet ${svr} --port ${!svr_pn} --dbpath ${DATA_PATH}/${svr}/data --logpath ${DATA_PATH}/${svr}/log/${svr}.log --fork --nojournal --oplogSize 10" >> /tmp/start_${node}.sh
             fi
-            #if [ "$svr" != "${node_info[$i]}" ];then
-            #    echo "haha"
-            #fi
         fi
     done
     echo -e "\033[33m--Copy files to ${node_info[0]}-- \033[0m" 
@@ -106,7 +110,53 @@ for node in ${NODES[@]}; do
     sshpass -p ${ROOT_PASS} ssh -o StrictHostKeyChecking=no root@${node_info[0]} /bin/bash ${DATA_PATH}/start_${node}.sh
 done
 
+# Step 5: Config shards and reps
+echo -e "\033[33m--Config shards-- \033[0m"
+for shn in ${SHARDS[@]};do
+    eval shns=(\${$shn[@]})
+    shn_pn=$shn"_p"
+    shard_conf_str="${DATA_PATH}/mongodb/bin/mongo ${shns[0]}:${!shn_pn}/admin -eval \"config={_id:'${shn}',members:["
+    tmp_str=""
+    for i in ${!shns[@]};do
+        if [ -z "$tmp_str" ];then
+            tmp_str="{_id:"$i",host:'"${shns[$i]%_arb}:${!shn_pn}"'"
+        else
+            tmp_str=${tmp_str},"{_id:"$i",host:'"${shns[$i]%_arb}:${!shn_pn}"'"
+        fi
+        if [[ "${shns[$i]}" =~ _arb$ ]];then
+            tmp_str=${tmp_str}",arbiterOnly:true"
+        fi
+        tmp_str=${tmp_str}"}"
+    done
+    shard_conf_str=${shard_conf_str}${tmp_str}"]};rs.initiate(config);\""
+    $shard_conf_str
+    sleep 1
+    #$shard_conf_str
+done
+
+echo -e "\033[33m--Config reps-- \033[0m"
+for shn in ${SHARDS[@]};do
+    eval shns=(\${$shn[@]})
+    shn_pn=$shn"_p"
+    rep_conf_str="${DATA_PATH}/mongodb/bin/mongo 127.0.0.1:${mongos_p}/admin -eval \"db.runCommand({addshard:'"
+    tmp_str=""
+    for i in ${!shns[@]};do
+        if [ -z "$tmp_str" ];then
+            tmp_str="ok"
+            rep_conf_str=${rep_conf_str}${shn}/${shns[$i]%_arb}:${!shn_pn}
+        else
+            rep_conf_str=${rep_conf_str},${shns[$i]%_arb}:${!shn_pn}
+        fi
+    done
+    rep_conf_str=${rep_conf_str}"'});\""
+    $rep_conf_str
+    sleep 1
+    #$rep_conf_str
+done
+
 echo -e "\033[33m--Clean files-- \033[0m"
 rm /tmp/tmp_${node}_mkdir.sh
 rm /tmp/start_${node}.sh
 rm -rf /tmp/mongodb
+
+echo -e "\033[33m--Install success-- \033[0m"
