@@ -122,7 +122,7 @@ echo "#!/bin/bash" >> /tmp/tmp_config_mongo.sh
 for shn in ${SHARDS[@]};do
     eval shns=(\${$shn[@]})
     shn_pn=$shn"_p"
-    shard_conf_str="${DATA_PATH}/mongodb/bin/mongo ${shns[0]}:${!shn_pn}/admin -eval \"config={_id:'${shn}',members:["
+    shard_conf_str="${DATA_PATH}/mongodb/bin/mongo ${shns[0]%_arb}:${!shn_pn}/admin -eval \"config={_id:'${shn}',members:["
     tmp_str=""
     for i in ${!shns[@]};do
         if [ -z "$tmp_str" ];then
