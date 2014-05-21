@@ -110,6 +110,9 @@ for node in ${NODES[@]}; do
     sshpass -p ${ROOT_PASS} ssh -o StrictHostKeyChecking=no root@${node_info[0]} /bin/bash ${DATA_PATH}/start_${node}.sh
 done
 
+echo -e "\033[33m--Create link-- \033[0m"
+ln -s ${DATA_PATH}/mongodb/bin/mongo /usr/local/bin/mongo
+
 # Step 5: Config shards and reps
 echo -e "\033[33m--Config shards-- \033[0m"
 
