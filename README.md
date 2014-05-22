@@ -1,7 +1,5 @@
 #Deploy tools set
 
-These scripts are written for Ubuntu/Debian.
-
 ##GlusterFS
 Compile, install and deploy glusterfs.
 
@@ -9,6 +7,10 @@ Compile, install and deploy glusterfs.
 `restart_ganglia.sh` Restart ganglia service by remote.
 
 ##RabbitMQ + HAProxy
+Deploy RabbitMQ cluster, it support HAProxy.
+
+##MongoDB
+Deploy MongoDB cluster.
 
 
 Author: dysj4099@gmail.com
