@@ -34,30 +34,33 @@ done
 apt-get install sshpass -y
 
 # Step 2. Compile and install glusterfs on each node.
-cd /tmp && tar xf ${PKG_PATH}
-
 cat > /tmp/tmp_install_gfs.sh << _wrtend_
 #!/bin/bash
 
+apt-get update
 apt-get -y --force-yes purge glusterfs-server glusterfs-common
-ps ax|grep gluster|grep -v grep|awk '{print $1}'|xargs -L 1 kill
-apt-get -y --force-yes install libssl-dev flex bison
+ps -ef | grep gluster | grep -v grep | grep -v deploy_glusterfs.sh | awk '{print \$2}'| xargs kill
+apt-get -y --force-yes install build-essential dpkg-dev sshpass libssl-dev flex bison
 rm -rf /var/lib/glusterd || true
 if [ ! -x /usr/local/sbin/glusterd ];then
-    cd /tmp/glusterfs-3.4.0 && ./configure && make && make install
-    cd /tmp && rm -rf /tmp/glusterfs-3.4.0
+    cd /tmp && tar xf /tmp/${G_VER}.tar.gz
+    cd /tmp/${G_VER} && ./configure && make && make install
+    cd /tmp && rm -rf /tmp/${G_VER}
     ldconfig && update-rc.d -f glusterd defaults
 fi
 service glusterd restart
 sleep 5
-rm -rf /tmp/glusterfs-3.4.0
+rm -rf /tmp/${G_VER}
+rm /tmp/${G_VER}.tar.gz
 rm /tmp/tmp_install_gfs.sh
 _wrtend_
+
+cp ${PKG_PATH} /tmp/
 
 for node in ${NODES[@]}; do
     if [ "${MY_IP}" != "$node" ];then
         echo $node install start
-        sshpass -p ${ROOT_PASS} scp -o StrictHostKeyChecking=no -r /tmp/glusterfs-3.4.0 ${node}:/tmp/glusterfs-3.4.0
+        sshpass -p ${ROOT_PASS} scp -o StrictHostKeyChecking=no -r ${PKG_PATH} ${node}:/tmp/
         sshpass -p ${ROOT_PASS} scp -o StrictHostKeyChecking=no /tmp/tmp_install_gfs.sh ${node}:/tmp/
         sshpass -p ${ROOT_PASS} ssh -o StrictHostKeyChecking=no root@${node} /bin/bash /tmp/tmp_install_gfs.sh
         echo $node install end
