@@ -2,6 +2,7 @@
 
 import time
 import sys
+import os
 import getopt
 import hashlib
 from functools import wraps
@@ -21,11 +22,13 @@ def md5chksum(filename):
     with open(filename) as f:
         data = f.read()
 	md5_rtn = hashlib.md5(data).hexdigest()
+    print '%s <-> %s' %(md5_rtn, os.path.abspath(filename))
     return md5_rtn
 
 if __name__=='__main__':
     if len(sys.argv) >= 2:
 	for i in xrange(1, len(sys.argv)):
-	    print md5chksum(sys.argv[i])
+	    if not os.path.isdir(sys.argv[i]):
+	        md5chksum(sys.argv[i])
     else:
 	print 'python %s file_1 file_2...file_n' %sys.argv[0]
