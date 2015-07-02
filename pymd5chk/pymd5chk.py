@@ -3,7 +3,6 @@
 import time
 import sys
 import os
-import getopt
 import hashlib
 from functools import wraps
 
@@ -25,10 +24,15 @@ def md5chksum(filename):
     print '%s <-> %s' %(md5_rtn, os.path.abspath(filename))
     return md5_rtn
 
+@timeit
+def main(argv):
+    for i in xrange(1, len(sys.argv)):
+        if not os.path.isdir(sys.argv[i]):
+	    md5chksum(sys.argv[i])
+
 if __name__=='__main__':
     if len(sys.argv) >= 2:
-	for i in xrange(1, len(sys.argv)):
-	    if not os.path.isdir(sys.argv[i]):
-	        md5chksum(sys.argv[i])
+	argv = sys.argv
+	main(argv)
     else:
 	print 'python %s file_1 file_2...file_n' %sys.argv[0]
