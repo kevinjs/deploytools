@@ -6,6 +6,8 @@ import os
 import re
 import getopt
 import time
+import subprocess
+import Queue
 import csv
 from functools import wraps
 
@@ -19,11 +21,25 @@ def timeit(func):
         return ret
     return wrapper
 
-def exe_by_expect():
+def run_by_expect():
     pass
 
-def exe_by_sshpass():
+def send_by_expect():
     pass
+
+def run_by_sshpass():
+    pass
+
+def send_by_sshpass(addr, port, src, dst, acc, pwd):
+    output = ''
+    shell_input = 'sshpass -p %s scp -P %s -o LogLevel=error -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -r %s %s@%s:%s' %(pwd, port, src, acc, addr, dst)
+    try:
+        output = subprocess.check_output(shell_input, shell=True)
+    except subprocess.CalledProcessError, err:
+        print out_put
+        print err.output
+    
+
 
 def read_hosts(hosts_file):
     hosts = []
@@ -48,8 +64,9 @@ def read_hosts(hosts_file):
     return hosts
 
 @timeit
-def exe_batch(mode, remote_hosts_file, script_file):
+def run_batch(mode, remote_hosts_file, script_file):
     hosts = read_hosts(remote_hosts_file)
+
 
 if __name__=='__main__':
     remote_hosts_file = ''
@@ -70,8 +87,7 @@ if __name__=='__main__':
     if mode in ['expect', 'sshpass'] \
        and remote_hosts_file \
        and script_file:
-        exe_batch(mode, remote_hosts_file, script_file)
+        run_batch(mode, remote_hosts_file, script_file)
     else:
         print 'USAGE: python %s -m mode -r remote_host_file -s script_file' %sys.argv[0]
         sys.exit(-1)
-
