@@ -1,0 +1,23 @@
+#!/usr/bin/expect -f
+
+if { $argc != 6 } {
+    send_user "please input file, ip, port, account, password, dst diretory"
+    exit 1
+}
+
+set file [lindex $argv 0]
+set ip [lindex $argv 1]
+set port [lindex $argv 2]
+set account [lindex $argv 3]
+set password [lindex $argv 4]
+set dst_diretory [lindex $argv 5]
+
+set timeout 6 
+spawn scp -P $port -o LogLevel=quiet -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -r $file $account@$ip:$dst_diretory
+expect {
+	"yes/no" {send "yes\r";exp_continue}
+	"assword:" {send "$password\r"}
+}
+
+expect eof 
+exit 0

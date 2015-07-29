@@ -1,0 +1,27 @@
+#!/usr/bin/expect -f
+
+if { $argc < 5} {
+send_user "Please input ip, port, script_file, account, password\n"
+exit 1
+}
+
+set ip           [lindex $argv 0]
+set port         [lindex $argv 1]
+set script_file  [lindex $argv 2]
+set account      [lindex $argv 3]
+set password     [lindex $argv 4]
+
+set timeout 600
+spawn ssh -p $port -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -q -l $account $ip
+expect {
+"yes/no" {send "yes\r";exp_continue}
+"assword:" {send "$password\r"}
+timeout {send_user "login timeout"; exit 3}
+}
+
+send "chmod +x $script_file\r"
+sleep 1
+send "$script_file\r"
+send "logout\r"
+sleep 1
+expect eof
