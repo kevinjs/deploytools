@@ -86,10 +86,7 @@ def run_by_expect(host, src, dst, kwds):
 def send_by_expect(host, src, dst):
     shell_input = './send_file.exp %s %s %s %s %s %s' %(src, host['ip'], host['port'], host['acc'], host['pwd'], dst)
     p = subprocess.Popen(shell_input, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    try:
-        stdout, stderr = p.communicate(timeout=8)
-    except subprocess.TimeoutExpired:
-        return False
+    stdout, stderr = p.communicate()
     if '100%' in stdout:
         return True
     else:
@@ -105,11 +102,7 @@ def run_by_sshpass(host, src, dst, kwds):
 def send_by_sshpass(host, src, dst):
     shell_input = 'sshpass -p %s scp -P %s -o LogLevel=error -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -r %s %s@%s:%s' %(host['pwd'], host['port'], src, host['acc'], host['ip'], dst)
     p = subprocess.Popen(shell_input, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    try:
-        stdout, stderr = p.communicate(timeout=10)
-    except subprocess.TimeoutExpired:
-        return False
-
+    stdout, stderr = p.communicate()
     if 'lost connection' in stdout or 'Permission denied' in stdout:
         return False
     else:
